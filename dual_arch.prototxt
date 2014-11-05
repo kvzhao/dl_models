@@ -1,0 +1,418 @@
+name: "MORPH-AGE-CLASSIFICATION"
+layers {
+  name: "morph"
+  type: DATA
+  top: "pair_data"
+  top: "label"
+  data_param {
+    source: "../../data/MORPH/morph_60_pair_train-leveldb"
+    batch_size: 16
+  }
+  include: { phase: TRAIN }
+}
+
+layers {
+  name: "morph"
+  type: DATA
+  top: "pair_data"
+  top: "label"
+  data_param {
+    source: "../../data/MORPH/morph_60_pair_test-leveldb"
+    batch_size: 16
+  }
+  include: { phase: TEST }
+}
+
+# ================ DATA PREPROCESSING ==================
+layers {
+          name: "slice_pair"
+          type: SLICE
+          bottom: "pair_data"
+          top: "data"
+          top: "data_p"
+          slice_param {
+              slice_dim: 1
+              slice_point: 1
+          }
+}
+                                                                                                       
+#================= ARCH LEFT ===========================
+#----------------- layer 1l----------------------------
+
+layers {
+  name: "conv1_l"
+  type: CONVOLUTION
+  bottom: "data"
+  top: "conv1_l"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 8
+    pad: 2
+    kernel_size: 5
+    stride: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "pool1_l"
+  type: POOLING
+  bottom: "conv1_l"
+  top: "pool1_l"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layers {
+  name: "relu1_l"
+  type: RELU
+  bottom: "pool1_l"
+  top: "pool1_l"
+}
+layers {
+  name: "norm1_l"
+  type: LRN
+  bottom: "pool1_l"
+  top: "norm1_l"
+  lrn_param {
+    norm_region: WITHIN_CHANNEL
+    local_size: 3
+    alpha: 5e-05
+    beta: 0.75
+  }
+}
+
+# ----------------- layer 2l ----------------------------
+layers {
+  name: "conv2_l"
+  type: CONVOLUTION
+  bottom: "norm1_l"
+  top: "conv2_l"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 32
+    pad: 2
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "relu2_l"
+  type: RELU
+  bottom: "conv2_l"
+  top: "conv2_l"
+}
+layers {
+  name: "pool2_l"
+  type: POOLING
+  bottom: "conv2_l"
+  top: "pool2_l"
+  pooling_param {
+    pool: AVE
+    kernel_size: 3
+    stride: 2
+  }
+}
+layers {
+  name: "norm2_l"
+  type: LRN
+  bottom: "pool2_l"
+  top: "norm2_l"
+  lrn_param {
+    norm_region: WITHIN_CHANNEL
+    local_size: 3
+    alpha: 5e-05
+    beta: 0.75
+  }
+}
+
+# ----------------- layer 3l ----------------------------
+layers {
+  name: "conv3_l"
+  type: CONVOLUTION
+  bottom: "norm2_l"
+  top: "conv3_l"
+  convolution_param {
+    num_output: 32
+    pad: 2
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "relu3_l"
+  type: RELU
+  bottom: "conv3_l"
+  top: "conv3_l"
+}
+layers {
+   name: "drop3_l"
+   type: DROPOUT
+   bottom: "conv3_l"
+   top: "conv3_l"
+   dropout_param {
+      dropout_ratio: 0.5
+   }
+}
+layers {
+  name: "pool3_l"
+  type: POOLING
+  bottom: "conv3_l"
+  top: "pool3_l"
+  pooling_param {
+    pool: AVE
+    kernel_size: 2
+    stride: 2
+  }
+}
+
+# ================= ARCH RIGHT ===========================
+# ----------------- layer 1r ----------------------------
+layers {
+  name: "conv1_r"
+  type: CONVOLUTION
+  bottom: "data_p"
+  top: "conv1_r"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 8
+    pad: 2
+    kernel_size: 5
+    stride: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "pool1_r"
+  type: POOLING
+  bottom: "conv1_r"
+  top: "pool1_r"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layers {
+  name: "relu1_r"
+  type: RELU
+  bottom: "pool1_r"
+  top: "pool1_r"
+}
+layers {
+  name: "norm1_r"
+  type: LRN
+  bottom: "pool1_r"
+  top: "norm1_r"
+  lrn_param {
+    norm_region: WITHIN_CHANNEL
+    local_size: 3
+    alpha: 5e-05
+    beta: 0.75
+  }
+}
+
+# ----------------- layer 2r ----------------------------
+layers {
+  name: "conv2_r"
+  type: CONVOLUTION
+  bottom: "norm1_r"
+  top: "conv2_r"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 16
+    pad: 2
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "relu2_r"
+  type: RELU
+  bottom: "conv2_r"
+  top: "conv2_r"
+}
+layers {
+  name: "pool2_r"
+  type: POOLING
+  bottom: "conv2_r"
+  top: "pool2_r"
+  pooling_param {
+    pool: AVE
+    kernel_size: 3
+    stride: 2
+  }
+}
+layers {
+  name: "norm2_r"
+  type: LRN
+  bottom: "pool2_r"
+  top: "norm2_r"
+  lrn_param {
+    norm_region: WITHIN_CHANNEL
+    local_size: 3
+    alpha: 5e-05
+    beta: 0.75
+  }
+}
+
+# ----------------- layer 3r ----------------------------
+layers {
+  name: "conv3_r"
+  type: CONVOLUTION
+  bottom: "norm2_r"
+  top: "conv3_r"
+  convolution_param {
+    num_output: 16
+    pad: 2
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "relu3_r"
+  type: RELU
+  bottom: "conv3_r"
+  top: "conv3_r"
+}
+layers {
+   name: "drop3_r"
+   type: DROPOUT
+   bottom: "conv3_r"
+   top: "conv3_r"
+   dropout_param {
+      dropout_ratio: 0.5
+   }
+}
+layers {
+  name: "pool3_r"
+  type: POOLING
+  bottom: "conv3_r"
+  top: "pool3_r"
+  pooling_param {
+    pool: AVE
+    kernel_size: 2
+    stride: 2
+  }
+}
+
+# ================== FULLY CONNECTED =====================
+
+layers {
+   name: "concatenate"
+   type: CONCAT
+   bottom: "pool3_l"
+   bottom: "pool3_r"
+   top: "concat"
+   concat_param: {
+      concat_dim: 1
+   }
+}
+
+# ----------------- layer 4 fc ----------------------------
+layers {
+  name: "fc1"
+  type: INNER_PRODUCT
+  bottom: "concat"
+  top: "fc1"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 24
+  weight_decay: 0
+  inner_product_param {
+    num_output: 60
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+
+# ----------------- layer 5 fc ----------------------------
+layers {
+  name: "fc2"
+  type: INNER_PRODUCT
+  bottom: "fc1"
+  top: "fc2"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 250
+  weight_decay: 0
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+    }
+   }
+}
+
+# ================= END OF ARCH ===========================
+
+layers {
+  name: "accuracy"
+  type: ACCURACY
+  bottom: "fc2"
+  bottom: "label"
+  top: "accuracy"
+  include: { phase: TEST }
+}
+
+layers {
+  name: "loss"
+  type: SOFTMAX_LOSS
+  bottom: "fc2"
+  bottom: "label"
+  top: "loss"
+}
